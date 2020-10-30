@@ -31,7 +31,7 @@ app = FastAPI(title="eCS AI Architecture Docs",
 #     tags: Set[str] = []
 
 
-@app.get("/")
+@app.get("/a/")
 def home():
     '''
     Perform regular status checks to make sure the container is up and responding
@@ -51,96 +51,96 @@ def home():
 
     return "Hello World I am Model A. Hostname is {} and host_ip is {}".format(host_name, host_ip)
 
-@app.get("/train/")
-def train(model_id: str, 
-            model_source: str, 
-            data_source: str, 
-            model_destination: str, 
-            model_details: Optional[str] = None):
+# @app.get("datareview/train")
+# def train(model_id: str, 
+#             model_source: str, 
+#             data_source: str, 
+#             model_destination: str, 
+#             model_details: Optional[str] = None):
 
-    '''
-    Performs training on model given a dataset location and saves model outputs to a model destination
-
-
-    Parameters
-    ==========
-    model_id: str 
-        unique name for model.
-    model_source: str 
-        location/path to pull model file.
-    data_source: str 
-        location/path to pull training data.
-    model_destination: str 
-        location/path to store trained model file.
-    model_details: str 
-        additional details that may be relevant.
+#     '''
+#     Performs training on model given a dataset location and saves model outputs to a model destination
 
 
-    Returns
-    =======
-    item: dict of model_id, model_source, model_destination, model_details
-
-    '''
-
-
-    item = {
-
-        'model_id': model_id,
-        'model_source': model_source,
-        'model_destination': model_destination,
-        'model_details': model_details
-        }
+#     Parameters
+#     ==========
+#     model_id: str 
+#         unique name for model.
+#     model_source: str 
+#         location/path to pull model file.
+#     data_source: str 
+#         location/path to pull training data.
+#     model_destination: str 
+#         location/path to store trained model file.
+#     model_details: str 
+#         additional details that may be relevant.
 
 
-    # current date and time
-    now = datetime.now()
-    TRAINING_TIMESTAMP = datetime.timestamp(now)
-    MODEL_ACCURACY = np.random.random_sample()
+#     Returns
+#     =======
+#     item: dict of model_id, model_source, model_destination, model_details
+
+#     '''
 
 
-    logging.info('TRAINING_TIMESTAMP: {}'.format(TRAINING_TIMESTAMP))
-    logging.info('MODEL_ACCURACY: {}'.format(MODEL_ACCURACY))
-    logging.info('MODEL_DESTINATION: {}'.format(model_destination))
-    logging.info(model_id, model_source, model_destination, model_details)
+#     item = {
+
+#         'model_id': model_id,
+#         'model_source': model_source,
+#         'model_destination': model_destination,
+#         'model_details': model_details
+#         }
+
+
+#     # current date and time
+#     now = datetime.now()
+#     TRAINING_TIMESTAMP = datetime.timestamp(now)
+#     MODEL_ACCURACY = np.random.random_sample()
+
+
+#     logging.info('TRAINING_TIMESTAMP: {}'.format(TRAINING_TIMESTAMP))
+#     logging.info('MODEL_ACCURACY: {}'.format(MODEL_ACCURACY))
+#     logging.info('MODEL_DESTINATION: {}'.format(model_destination))
+#     logging.info(model_id, model_source, model_destination, model_details)
 
 
  
-    return item
+#     return item
 
 
-@app.get("/predict/")
-def predict(model_id: str, 
-            model_source: str, 
-             model_details: Optional[str] = None):
-    '''
+# @app.get("datareview/predict")
+# def predict(model_id: str, 
+#             model_source: str, 
+#              model_details: Optional[str] = None):
+#     '''
 
-    Parameters
-    ==========
-    model_id: str 
-        unique name for model.
-    model_source: str 
-        location/path to pull model file.
-    model_details: str 
-        additional details that may be relevant.
-
-
-    Returns
-    =======
-    item: dict 
-        model_id, model_source, model_details
-    '''
+#     Parameters
+#     ==========
+#     model_id: str 
+#         unique name for model.
+#     model_source: str 
+#         location/path to pull model file.
+#     model_details: str 
+#         additional details that may be relevant.
 
 
-    item = {
-        'model_id': model_id,
-        'model_source': model_source,
-        'model_details': model_details
-        }
+#     Returns
+#     =======
+#     item: dict 
+#         model_id, model_source, model_details
+#     '''
 
-    logging.info(f'Pulling {model_id} from {model_source} for prediction')
-    logging.info('Running prediction...')
-    logging.info('Prediction is...')
 
-    return item
+#     item = {
+#         'model_id': model_id,
+#         'model_source': model_source,
+#         'model_details': model_details
+#         }
+
+#     logging.info(f'Pulling {model_id} from {model_source} for prediction')
+#     logging.info('Running prediction...')
+#     logging.info('Prediction is...')
+
+#     return item
 
 
