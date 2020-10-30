@@ -51,6 +51,27 @@ def home():
 
     return "Hello World I am Model A. Hostname is {} and host_ip is {}".format(host_name, host_ip)
 
+
+
+@app.get("/a/hello")
+def hello():
+    '''
+    Perform regular status checks to make sure the container is up and responding
+
+    Returns
+    =======
+    str
+    '''
+    try: 
+        host_name = socket.gethostname() 
+        host_ip = socket.gethostbyname(host_name) 
+        print("Hostname :  ",host_name) 
+        print("IP : ",host_ip) 
+    except: 
+        print("Unable to get Hostname and IP") 
+
+
+    return "Hello World I am Model A. Hostname is {} and host_ip is {}".format(host_name, host_ip)
 # @app.get("datareview/train")
 # def train(model_id: str, 
 #             model_source: str, 
