@@ -7,6 +7,7 @@ from datetime import date
 from typing import Optional, Set, Any, Dict
 from fastapi import FastAPI
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 import logging 
 
 
