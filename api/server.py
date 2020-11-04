@@ -48,16 +48,32 @@ def home():
         host_ip = socket.gethostbyname(host_name) 
         print("Hostname :  ",host_name) 
         print("IP : ",host_ip) 
-    except: 
+    except : 
         print("Unable to get Hostname and IP") 
+        
 
 
     return "Hello World I am the RBM Model. Hostname is {} and host_ip is {}".format(host_name, host_ip)
 
 
-@app.post('/rbm/train')
+@app.post('/rbm/train/')
 def train(request: Dict[Any, Any]):
     '''
+    Params
+    ======
+    connector: connection string to db connection
+    study: (str) the name of the study to score
+    load_model: (str) the name of the model to load, if auto the most recently trained model is loaded
+    time_step: (str) the length of time for computing KRIs
+    num_training_steps: (str)
+    num_testing_steps: (str)
+    params: (dict)
+    
+
+
+    Returns
+    =======
+    List: Hostname and IP address
     
 
     '''
@@ -121,7 +137,8 @@ def train(request: Dict[Any, Any]):
 @app.post('/rbm/predict')
 def predict(request: Dict[Any, Any]):
     '''
-
+    
+    
 
     Params
     ======
@@ -130,6 +147,10 @@ def predict(request: Dict[Any, Any]):
     load_model: (str) the name of the model to load, if auto the most recently trained model is loaded
     time_step: (str) the length of time for computing KRIs
 
+
+    Returns
+    =======
+    List: Hostname and IP address
 
 
     '''
@@ -179,7 +200,7 @@ def predict(request: Dict[Any, Any]):
 
 
 
-
-
-
-
+    
+    
+    
+    

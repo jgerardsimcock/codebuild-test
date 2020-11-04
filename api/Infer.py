@@ -22,7 +22,7 @@ def infer_risk(
         "path_to_saved_risk_scores": "risk",
         "s3": False
     },
-):
+    ):
     """
     Infer risk for a study using a trained ORM.
 
@@ -93,6 +93,7 @@ def infer_risk(
         today = params["today"]
         if isinstance(today, str):
             today = pd.to_datetime(today)
+             
     else:
         today = pd.to_datetime("today").floor(freq="D")
 
@@ -119,7 +120,7 @@ def infer_risk(
     KRI_start_time_w_lag = today - (lag_periods + 1) * time_step
 
     logging.info("Scoring KRIs")
-    KRI_raw_data = score_KRIs(connector, study, KRI_start_time_w_lag, today, time_step,)
+    KRI_raw_data = score_KRIs(connector, study, KRI_start_time_w_lag, today, time_step, params)
 
 #     ODM_study = study + "_ODM_Mapped#"
 
@@ -131,7 +132,9 @@ def infer_risk(
     if not isinstance(KRI_data, pd.DataFrame):
         logging.warning("No sites to score.")
     else:
-        KRI_data = KRI_data[KRI_data["Start_Time"] == today]
+        
+        KRI_data = KRI_data.loc[KRI_data["Start_Time"] == today]
+        
         KRI_scores = KRI_data.drop(columns=["site_active_next_period"])
 
         if "KRIs" not in params:

@@ -105,7 +105,7 @@ def train_ORM(
 
     for connector, study_list in connector_study_dict.items():
         for study in study_list:
-            KRIs = score_KRIs(connector, study, training_start_w_lag, today, time_step)
+            KRIs = score_KRIs(connector, study, training_start_w_lag, today, time_step, params)
             KRI_data = transform_KRI_table(KRIs, params={"lag_periods": lag_periods})
             if isinstance(KRI_data, pd.DataFrame):
                 KRI_data = KRI_data[KRI_data["Start_Time"] >= training_start]

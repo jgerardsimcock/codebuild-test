@@ -39,58 +39,114 @@ def score_KRIs(connector, study, start_time, end_time, time_step, params={}):
 
     Returns:
         a Dataset containing all the KRI scores
+
     """
-    AE_DF, EX_DF, QY_DF, LB_DF, VS_DF, DM_DF = load_data_from_s3(connector, study)
+
+    #data pull from s3
+    if params['s3'] == True:
+
+        
+        AE_DF, EX_DF, QY_DF, LB_DF, VS_DF, DM_DF = load_data_from_s3(connector, study)
 
 
 
-    AE = Dataset(
-        dataset=AE_DF,
-        study=study,
-        table="AE",
-        params={"start_day": "AESTDY", "start_date": "AESTDTC"},
-    )
+        AE = Dataset(
+            dataset=AE_DF,
+            study=study,
+            table="AE",
+            params={"start_day": "AESTDY", "start_date": "AESTDTC"},
+        )
 
-    EX = Dataset(
-        dataset=EX_DF,
-        study=study,
-        table="EX",
-        params={"start_day": "EXSTDY", "start_date": "EXSTDTC"},
-    )
+        EX = Dataset(
+            dataset=EX_DF,
+            study=study,
+            table="EX",
+            params={"start_day": "EXSTDY", "start_date": "EXSTDTC"},
+        )
 
-    QY = Dataset(
-        dataset=QY_DF,
-        study=study + "_ODM_Mapped#",
-        table="Query",
-        params={
-            "start_date": "OpenDate",
-            "end_date": "CloseDate",
-            "subject_column": "UniqueSubjectID",
-            "study_column": "StudyOID",
-        },
-    )
+        QY = Dataset(
+            dataset=QY_DF,
+            study=study + "_ODM_Mapped#",
+            table="Query",
+            params={
+                "start_date": "OpenDate",
+                "end_date": "CloseDate",
+                "subject_column": "UniqueSubjectID",
+                "study_column": "StudyOID",
+            },
+        )
 
-    LB = Dataset(
-        dataset=LB_DF,
-        study=study,
-        table="LB",
-        params={"start_day": "LBDY", "start_date": "LBDTC"},
-    )
+        LB = Dataset(
+            dataset=LB_DF,
+            study=study,
+            table="LB",
+            params={"start_day": "LBDY", "start_date": "LBDTC"},
+        )
 
-    VS = Dataset(
-        dataset=VS_DF,
-        study=study,
-        table="VS",
-        params={
-            "start_day": "VSDY",
-            "start_date": "VSDTC",
-            "value_name_column": "VSTEST",
-        },
-    )
+        VS = Dataset(
+            dataset=VS_DF,
+            study=study,
+            table="VS",
+            params={
+                "start_day": "VSDY",
+                "start_date": "VSDTC",
+                "value_name_column": "VSTEST",
+            },
+        )
 
-    DM = Dataset(
-        dataset=DM_DF, study=study, table="DM", params={"site_column": "SITEID"}
-    )
+        DM = Dataset(
+            dataset=DM_DF, study=study, table="DM", params={"site_column": "SITEID"}
+        )
+    #Pull from db
+    else:
+
+        AE = Dataset(
+            connector=connector,
+            study=study,
+            table="AE",
+            params={"start_day": "AESTDY", "start_date": "AESTDTC"},
+        )
+
+        EX = Dataset(
+            connector=connector,
+            study=study,
+            table="EX",
+            params={"start_day": "EXSTDY", "start_date": "EXSTDTC"},
+        )
+
+        QY = Dataset(
+            connector=connector,
+            study=study + "_ODM_Mapped#",
+            table="Query",
+            params={
+                "start_date": "OpenDate",
+                "end_date": "CloseDate",
+                "subject_column": "UniqueSubjectID",
+                "study_column": "StudyOID",
+            },
+        )
+
+        LB = Dataset(
+            connector=connector,
+            study=study,
+            table="LB",
+            params={"start_day": "LBDY", "start_date": "LBDTC"},
+        )
+
+        VS = Dataset(
+            connector=connector,
+            study=study,
+            table="VS",
+            params={
+                "start_day": "VSDY",
+                "start_date": "VSDTC",
+                "value_name_column": "VSTEST",
+            },
+        )
+
+        DM = Dataset(
+            connector=connector, study=study, table="DM", params={"site_column": "SITEID"}
+        )
 
     AE = preprocess_data(AE, DM)
     EX = preprocess_data(EX, DM)
@@ -109,16 +165,16 @@ def score_KRIs(connector, study, start_time, end_time, time_step, params={}):
         AE_rates = adverse_event_rates(AE, EX, time, stepped_time, params={})
         dataset_list.extend(AE_rates)
 
-#         if time_range.type == "datetime":
-#             QY_rates = query_rates(
-#                 QY, EX, time, stepped_time, params={"site_list": site_list}
-#             )
-#             dataset_list.extend(QY_rates)
+        if time_range.type == "datetime":
+            QY_rates = query_rates(
+                QY, EX, time, stepped_time, params={"site_list": site_list}
+            )
+            dataset_list.extend(QY_rates)
 
-#             QY_response_times = query_response_times(
-#                 QY, time, stepped_time, params={"site_list": site_list}
-#             )
-#             dataset_list.extend(QY_response_times)
+            QY_response_times = query_response_times(
+                QY, time, stepped_time, params={"site_list": site_list}
+            )
+            dataset_list.extend(QY_response_times)
 
         LB_rates = lab_rates(LB, EX, time, stepped_time, params={})
         dataset_list.extend(LB_rates)
@@ -254,9 +310,7 @@ def score_data_risk(connector, study, level="site", params={}):
 
     VS_outlier_model = Outlier_Model()
     LB_outlier_model = Outlier_Model()
-    # ################################
-    # print(LB_dataset.dataset.head())
-    # ################################
+    
     scored_VS = VS_outlier_model.fit_predict(VS_dataset)
     scored_LB = LB_outlier_model.fit_predict(LB_dataset)
 

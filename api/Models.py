@@ -69,8 +69,7 @@ class Outlier_Model:
             if dataset.outlier_ready:
                 raw_data = dataset.dataset
                 train_data = raw_data.drop(columns=["USUBJID", "Site", "Time"])
-                print(train_data.shape)
-                print(train_data.columns)
+                
                 self.features = list(train_data.columns)
                 self.model = self.model.fit(train_data)
                 self.trained = True
