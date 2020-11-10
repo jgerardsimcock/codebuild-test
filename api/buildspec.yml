@@ -1,0 +1,14 @@
+version: 0.1
+  phases:
+    install:
+        commands:
+          - sudo apt update && sudo apt install -y curl
+          - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 --storage-driver=overlay&
+          - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+    build:
+        commands:
+          - cd $(dirname ${PathToDockerfile}) && docker build -f $(basename ${PathToDockerfile}) -t ${ECRRepo} .
+    post_build:
+        commands:
+          # - if curl -vs -H "Authorization:token ${GitHubToken}" https://api.github.com/repos/${GitHubUser}/${GitHubRepo}/commits/master 2>&1 | grep --quiet "$(dirname ${PathToDockerfile})/"; then $(aws ecr get-login --no-include-email --region ${AWS::Region}) && docker tag ${ECRRepo}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepo}:latest && docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepo}:latest && aws codepipeline start-pipeline-execution --name ${DeployPipelineName}; else echo "service was not modified in latest change"; fi
+            - if aws ecr list-images --repository-name ${ECRRepo}| grep -w "\"imageIds\": \[\]"; then $(aws ecr get-login --no-include-email --region ${AWS::Region}) && docker tag ${ECRRepo}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepo}:latest && docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepo}:latest && aws codepipeline start-pipeline-execution --name ${DeployPipelineName}; else if curl -vs -H "Authorization:token ${GitHubToken}" https://api.github.com/repos/${GitHubUser}/${GitHubRepo}/commits/master 2>&1 | grep --quiet "$(dirname ${PathToDockerfile})/"; then $(aws ecr get-login --no-include-email --region ${AWS::Region}) && docker tag ${ECRRepo}:latest ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepo}:latest && docker push ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepo}:latest && aws codepipeline start-pipeline-execution --name ${DeployPipelineName}; else echo "service was not modified in latest change"; fi; fi
