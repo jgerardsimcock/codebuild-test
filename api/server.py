@@ -142,6 +142,7 @@ def predict(request: Dict[Any, Any]):
         time_step=time_step,
         params=request["params"],
     )
+    #####
 
     logging.info(f"KRIs computed as: {KRIs}")
     logging.info(f"SCORES computed as: {scores}")
