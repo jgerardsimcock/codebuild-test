@@ -5,7 +5,8 @@ import s3fs
 from io import StringIO
 from Dataset import Dataset
 from Time_Range import Time_Range
-# from Connector import SQL_connector
+from Connector import SQL_connector
+
 
 import warnings
 import ast
@@ -85,7 +86,8 @@ def preprocess_data(raw_dataset, dm_dataset):
 
         out.study_column = "STUDYID"
 
-        # Rename the site column if it exists in the dataset, create it otherwise
+        # Rename the site column if it exists in the dataset, create it
+        # otherwise
         if hasattr(out, "site_column"):
             out.dataset = out.dataset.rename(columns={out.site_column: "Site"})
         else:
@@ -208,7 +210,10 @@ def active_subject_count(EX_dataset, start_time, end_time, params={}):
         name = "active_subject_count"
 
     site_count_frame = series_to_frame(
-        site_counts, time_window, "active_subject_count", params={"value_name": name},
+        site_counts,
+        time_window,
+        "active_subject_count",
+        params={"value_name": name},
     )
 
     out = Dataset(
@@ -472,7 +477,7 @@ def compute_active_periods(subject_counts):
 
 def MCC_at_threshhold(y_true, y_pred, threshhold):
     """
-    Compute the Mathewson Correlation Coeffecient (MCC) for target data at a given threshhold.
+    Compute the Mathewson Correlation Coefficient (MCC) for target data at a given threshhold.
 
     Args:
         y_true: (np.array) the ground truth target values
@@ -535,57 +540,72 @@ def load_connection_study_dict(config, param_set="DEFAULT"):
 def load_csv_from_s3(bucket="", file_path=""):
     """
     Loads csv from bucket into DataFrame
-    
+
     Args:
         bucket: (str) bucket name
         file_path: (str) file path name
-        
+
     Returns:
         pd.DataFrame
     """
     s3 = s3fs.S3FileSystem(anon=True)
-    with s3.open(f"{bucket}/{file_path}",'rb') as f:
+    with s3.open(f"{bucket}/{file_path}", "rb") as f:
         df = pd.read_csv(f)
-    logging.info(f'Loading {file_path} from {bucket}')
+    logging.info(f"Loading {file_path} from {bucket}")
     return df
 
 
-def load_data_from_s3(bucket="", study=""):
-    '''
+def load_data_from_s3(bucket="", study="", exts=None):
+    """
     Helper function to load in study data
-    
+
     Args:
         bucket: (str) bucket name
         file_path: (str) file path name
-    Returns: 
+        exts: list of file extensions for table names
+    Returns:
         pd.Dataframe
-    
-    '''
 
-    AE_DF = load_csv_from_s3(bucket, study + '/AE.csv')
-    EX_DF = load_csv_from_s3(bucket, study + '/EX.csv')
-    QY_DF = load_csv_from_s3(bucket, study + '/QY.csv')
-    LB_DF = load_csv_from_s3(bucket, study + '/LB.csv')
-    VS_DF = load_csv_from_s3(bucket, study + '/VS.csv')
-    DM_DF = load_csv_from_s3(bucket, study + '/DM.csv')
+    """
 
+    AE_DF = load_csv_from_s3(bucket, study + "/AE.csv")
+    EX_DF = load_csv_from_s3(bucket, study + "/EX.csv")
+    QY_DF = load_csv_from_s3(bucket, study + "/QY.csv")
+    LB_DF = load_csv_from_s3(bucket, study + "/LB.csv")
+    VS_DF = load_csv_from_s3(bucket, study + "/VS.csv")
+    DM_DF = load_csv_from_s3(bucket, study + "/DM.csv")
 
     return AE_DF, EX_DF, QY_DF, LB_DF, VS_DF, DM_DF
-    
+
+
 def save_df_to_s3(df, bucket="", file_path="", index=False, float_format=None):
     """
     Saves df to bucket in csv format
-    
+
     Args:
-        df: (pd.DataFrame) 
+        df: (pd.DataFrame)
         bucket: (str) bucket name
         file_path: (str) file path name
-        
+
     Returns:
         None
     """
-    
+
     s3 = s3fs.S3FileSystem(anon=True)
-    with s3.open(f"{bucket}/{file_path}",'w') as f:
+    with s3.open(f"{bucket}/{file_path}", "w") as f:
         df.to_csv(f, index=index, float_format=float_format)
-    logging.info(f'Savinging {file_path} to {bucket}')
+    logging.info(f"Savinging {file_path} to {bucket}")
+
+
+def fetch_dataset(params, connector, study, table, table_params, f_name=""):
+    if params["s3_source_bucket"] is not None:
+        return Dataset(
+            dataset=load_csv_from_s3(params["s3_source_bucket"], study + f"/{f_name}"),
+            study=study,
+            table=table,
+            params=table_params,
+        )
+    else:
+        return Dataset(
+            connector=connector, study=study, table=table, params=table_params
+        )

@@ -23,7 +23,7 @@ class Outlier_Model:
     An isolation forest model for identifying numerical outliers.
 
     Class Vars:
-        model: (sklean model) the isolation forest model
+        model: (sklearn model) the isolation forest model
         features: (list) a list of feature names
         trained: (bool) a Boolean representing whether or not the model has been trained
 
@@ -32,7 +32,7 @@ class Outlier_Model:
         fit: fit the model object on a Dataset object
         predict: identify the outliers
         fit_predict: fit the model and identify outliers
-        explain_precictions: generate an outlier classifier to determine feature importances
+        explain_predictions: generate an outlier classifier to determine feature importances
     """
 
     def __init__(self, contamination=0.05):
@@ -69,7 +69,7 @@ class Outlier_Model:
             if dataset.outlier_ready:
                 raw_data = dataset.dataset
                 train_data = raw_data.drop(columns=["USUBJID", "Site", "Time"])
-                
+
                 self.features = list(train_data.columns)
                 self.model = self.model.fit(train_data)
                 self.trained = True
@@ -184,7 +184,7 @@ class Outlier_Model:
             top_risky = list(map(lambda x: x[0], top_risky_with_scores))
 
             top_safe_dict = {
-                f"#{idx+1} Test decreaing Outlierness": test
+                f"#{idx+1} Test decreasing Outlierness": test
                 for idx, test in enumerate(top_safe)
             }
             top_risky_dict = {
@@ -209,7 +209,7 @@ class ORM:
 
     Class Vars:
         trained: (bool) whether the model has been trained
-        model: (LightGBM Reggressor) the model
+        model: (LightGBM Regressor) the model
         features: (list) the list of model features
         MCC_thesh: (float) the binary classification theshhold
         metrics: (dict) the metrics by which to judge model performance, keys are test names, values are functions for computing the metric
@@ -368,7 +368,7 @@ class ORM:
             target_data: (pd.Series) the target ground truth data
 
         Returns:
-            3 pandas dataframes, the first is the aggregate perfromance statistics drawn from self.metrics, the last two returns are the confusion matrices for the ORM and the ZKM, respectively
+            3 pandas dataframes, the first is the aggregate performance statistics drawn from self.metrics, the last two returns are the confusion matrices for the ORM and the ZKM, respectively
         """
         self.check_fit()
         self.check_tune()
@@ -451,7 +451,10 @@ class ORM:
         self.check_fit()
         y_pred = self.predict(KRI_data)
         MCC_scores = [
-            (MCC_at_threshhold(target_data, y_pred, thresh), thresh,)
+            (
+                MCC_at_threshhold(target_data, y_pred, thresh),
+                thresh,
+            )
             for thresh in np.arange(0.5, 1, 0.01)
         ]
         best_MCC, best_MCC_thesh = max(MCC_scores)
@@ -522,51 +525,51 @@ class ORM:
             logging.error("Must provide path to model")
             raise FileNotFoundError
 
-    #called by Infer function
+    # called by Infer function
     def load_model_s3(self, bucket="", model_name=""):
-        '''
+        """
         Loads pkl file from s3 bucket into model instance
-        
+
         Args:
             bucket: (str) bucket name
             model_name: (str) model file name
-        
+
         Returns:
             None
-        '''
-        
+        """
+
         s3 = s3fs.S3FileSystem(anon=True)
         try:
-            
+
             f = s3.open(f"{bucket}/{model_name}")
-            logging.info(f'Loading {model_name} from {bucket}')
+            logging.info(f"Loading {model_name} from {bucket}")
             loaded_model = pickle.load(f)
             for key, value in loaded_model.__dict__.items():
                 setattr(self, key, value)
-            
-        except:
-            logging.error(f'Unable to load model from {bucket}')
-            raise FileNotFoundError
-       
 
-    #called by inder 
+        except BaseException:
+            logging.error(f"Unable to load model from {bucket}")
+            raise FileNotFoundError
+
+    # called by inder
+
     def save_model_s3(self, bucket="", model_name=""):
-        '''
+        """
         Saved model as pkl file to s3 bucket
-        
+
         Args:
             model: (pkl) instance of model pickle file
             bucket: (str) bucket name
             model_name: (str) model name
-        
+
         Returns:
             None
-        '''
+        """
         s3 = s3fs.S3FileSystem(anon=True)
         try:
-            with s3.open(f"{bucket}/{model_name}.pkl",'wb') as f:
+            with s3.open(f"{bucket}/{model_name}.pkl", "wb") as f:
                 pickle.dump(self, f)
-            logging.info(f'Saving {model_name}.pkl to {bucket}')
-        except:
-            logging.error(f'Model not saved to {bucket}/{model_name}')
-            
+            logging.info(f"Saving {model_name}.pkl to {bucket}")
+        except BaseException:
+            logging.error(f"Model not saved to {bucket}/{model_name}")
+            raise IOError

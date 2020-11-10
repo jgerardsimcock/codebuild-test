@@ -1,7 +1,6 @@
 import pandas as pd
 from Dataset import Dataset
 from Time_Range import Time_Range
-from utils import load_data_from_s3
 
 from utils import (
     preprocess_data,
@@ -9,6 +8,9 @@ from utils import (
     identify_scoreable_value_names,
     align_numerical_table,
     aggregate_data_risk,
+    load_data_from_s3,
+    load_csv_from_s3,
+    fetch_dataset,
 )
 from Counts import (
     adverse_event_rates,
@@ -25,13 +27,23 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-def score_KRIs(connector, study, start_time, end_time, time_step, params={}):
+def score_KRIs(
+    connector,
+    study,
+    start_time,
+    end_time,
+    time_step,
+    params={
+        "s3_source_bucket": None,
+        "s3_destination_bucket": None,
+    },
+):
     """
     Score all KRIs in a given time window.
 
     Args:
-        connector:
-        study:
+        connector: (str) s3 bucket or sql connection
+        study: (str) sudy
 
         start_time: (int, pd.Timestamp) the start time of the window
         end_time: (int, pd.Timestamp) the end time of the window
@@ -42,111 +54,68 @@ def score_KRIs(connector, study, start_time, end_time, time_step, params={}):
 
     """
 
-    #data pull from s3
-    if params['s3'] == True:
+    AE = fetch_dataset(
+        params,
+        connector,
+        study,
+        "AE",
+        table_params={"start_day": "AESTDY", "start_date": "AESTDTC"},
+        f_name="AE.csv",
+    )
 
-        
-        AE_DF, EX_DF, QY_DF, LB_DF, VS_DF, DM_DF = load_data_from_s3(connector, study)
+    EX = fetch_dataset(
+        params,
+        connector,
+        study,
+        "EX",
+        table_params={"start_day": "EXSTDY", "start_date": "EXSTDTC"},
+        f_name="EX.csv",
+    )
 
+    QY = fetch_dataset(
+        params,
+        connector,
+        study,
+        "Query",
+        table_params={
+            "start_date": "OpenDate",
+            "end_date": "CloseDate",
+            "subject_column": "UniqueSubjectID",
+            "study_column": "StudyOID",
+        },
+        f_name="QY.csv",
+    )
 
+    VS = fetch_dataset(
+        params,
+        connector,
+        study,
+        "VS",
+        table_params={
+            "start_day": "VSDY",
+            "start_date": "VSDTC",
+            "value_name_column": "VSTEST",
+        },
+        f_name="VS.csv",
+    )
 
-        AE = Dataset(
-            dataset=AE_DF,
-            study=study,
-            table="AE",
-            params={"start_day": "AESTDY", "start_date": "AESTDTC"},
-        )
+    DM = fetch_dataset(
+        params,
+        connector,
+        study,
+        "DM",
+        table_params={"site_column": "SITEID"},
+        f_name="DM.csv",
+    )
 
-        EX = Dataset(
-            dataset=EX_DF,
-            study=study,
-            table="EX",
-            params={"start_day": "EXSTDY", "start_date": "EXSTDTC"},
-        )
-
-        QY = Dataset(
-            dataset=QY_DF,
-            study=study + "_ODM_Mapped#",
-            table="Query",
-            params={
-                "start_date": "OpenDate",
-                "end_date": "CloseDate",
-                "subject_column": "UniqueSubjectID",
-                "study_column": "StudyOID",
-            },
-        )
-
-        LB = Dataset(
-            dataset=LB_DF,
-            study=study,
-            table="LB",
-            params={"start_day": "LBDY", "start_date": "LBDTC"},
-        )
-
-        VS = Dataset(
-            dataset=VS_DF,
-            study=study,
-            table="VS",
-            params={
-                "start_day": "VSDY",
-                "start_date": "VSDTC",
-                "value_name_column": "VSTEST",
-            },
-        )
-
-        DM = Dataset(
-            dataset=DM_DF, study=study, table="DM", params={"site_column": "SITEID"}
-        )
-    #Pull from db
-    else:
-
-        AE = Dataset(
-            connector=connector,
-            study=study,
-            table="AE",
-            params={"start_day": "AESTDY", "start_date": "AESTDTC"},
-        )
-
-        EX = Dataset(
-            connector=connector,
-            study=study,
-            table="EX",
-            params={"start_day": "EXSTDY", "start_date": "EXSTDTC"},
-        )
-
-        QY = Dataset(
-            connector=connector,
-            study=study + "_ODM_Mapped#",
-            table="Query",
-            params={
-                "start_date": "OpenDate",
-                "end_date": "CloseDate",
-                "subject_column": "UniqueSubjectID",
-                "study_column": "StudyOID",
-            },
-        )
-
-        LB = Dataset(
-            connector=connector,
-            study=study,
-            table="LB",
-            params={"start_day": "LBDY", "start_date": "LBDTC"},
-        )
-
-        VS = Dataset(
-            connector=connector,
-            study=study,
-            table="VS",
-            params={
-                "start_day": "VSDY",
-                "start_date": "VSDTC",
-                "value_name_column": "VSTEST",
-            },
-        )
-
-        DM = Dataset(
-            connector=connector, study=study, table="DM", params={"site_column": "SITEID"}
-        )
+    LB = fetch_dataset(
+        params,
+        connector,
+        study,
+        "LB",
+        table_params={"start_day": "LBDY", "start_date": "LBDTC"},
+        f_name="LB.csv",
+    )
 
     AE = preprocess_data(AE, DM)
     EX = preprocess_data(EX, DM)
@@ -221,44 +190,53 @@ def score_data_risk(connector, study, level="site", params={}):
         LB = params["lab_data"]
         LB.value_name_column = "LBTEST"
     else:
-        LB = Dataset(
-            connector=connector,
-            study=study,
-            table="LB",
-            params={
-                "start_day": "LBDY",
-                "start_date": "LBDTC",
-                "value_name_column": "LBTEST",
-            },
+        LB = fetch_dataset(
+            params,
+            connector,
+            study,
+            "LB",
+            table_params={"start_day": "LBDY", "start_date": "LBDTC"},
+            f_name="LB.csv",
         )
 
-        DM = Dataset(
-            connector=connector,
-            study=study,
-            table="DM",
-            params={"site_column": "SITEID"},
+        DM = fetch_dataset(
+            params,
+            connector,
+            study,
+            "DM",
+            table_params={"site_column": "SITEID"},
+            f_name="DM.csv",
         )
+
         LB = preprocess_data(LB, DM)
+
     if "vital_data" in params:
         VS = params["vital_data"]
         VS.value_name_column = "VSTEST"
     else:
-        VS = Dataset(
-            connector=connector,
-            study=study,
-            table="VS",
-            params={
+
+        VS = fetch_dataset(
+            params,
+            connector,
+            study,
+            "VS",
+            table_params={
                 "start_day": "VSDY",
                 "start_date": "VSDTC",
                 "value_name_column": "VSTEST",
             },
+            f_name="VS.csv",
         )
-        DM = Dataset(
-            connector=connector,
-            study=study,
-            table="DM",
-            params={"site_column": "SITEID"},
+
+        DM = fetch_dataset(
+            params,
+            connector,
+            study,
+            "DM",
+            table_params={"site_column": "SITEID"},
+            f_name="DM.csv",
         )
+
         VS = preprocess_data(VS, DM)
 
     LB_df = LB.dataset
@@ -310,7 +288,7 @@ def score_data_risk(connector, study, level="site", params={}):
 
     VS_outlier_model = Outlier_Model()
     LB_outlier_model = Outlier_Model()
-    
+
     scored_VS = VS_outlier_model.fit_predict(VS_dataset)
     scored_LB = LB_outlier_model.fit_predict(LB_dataset)
 

@@ -5,6 +5,7 @@ class SQL_connector:
     """
     A connector for interfacing with SQL data directly in Python, exectued using PYODBC.
 
+
     Class Vars:
         driver: (str) the SQL driver to use
         server: (str) the address of the SQL server

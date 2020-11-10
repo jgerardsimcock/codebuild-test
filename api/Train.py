@@ -21,8 +21,8 @@ def train_ORM(
         "warm_start": False,
         "path_to_saved_KRIs": None,
         "additional_KRIs": None,
-        "s3": False, 
-        "bucket": None
+        "s3_source_bucket": None,
+        "s3_destination_bucket": None,
     },
 ):
     """
@@ -38,51 +38,21 @@ def train_ORM(
         3 pandas Dataframes, the first contains aggregate performance scores, the last two contain confusion matrices for the ORM and the ZKM, respectively
     """
 
-    if "today" in params:
-        today = params["today"]
-    else:
-        today = pd.to_datetime("today").floor(freq="D")
+    today = params.get("today", pd.to_datetime("today").floor(freq="D"))
 
-    if "lag_periods" in params:
-        lag_periods = params["lag_periods"]
-    else:
-        lag_periods = 0
-
-    if "warm_start" in params:
-        warm_start = params["warm_start"]
-    else:
-        warm_start = False
-
-    if "path_to_saved_KRIs" in params:
-        path_to_saved_KRIs = params["path_to_saved_KRIs"]
-    else:
-        path_to_saved_KRIs = None
-
-    if "additional_KRIs" in params:
-        additional_KRIs = params["additional_KRIs"]
-    else:
-        additional_KRIs = None
-
-    if "verbose" in params:
-        verbose = params["verbose"]
-    else:
-        verbose = False
+    lag_periods = params.get("lag_periods", 0)
+    warm_start = params.get("warm_start", False)
+    path_to_saved_KRIs = params.get("path_to_saved_KRIs", None)
+    additional_KRIs = params.get("additional_KRIs", None)
+    verbose = params.get("params", False)
+    source_bucket = params.get("s3_source_bucket", None)
+    destination_bucket = params.get("s3_destination_bucket", None)
 
     if isinstance(time_step, str):
         time_step = pd.Timedelta(time_step)
 
     if isinstance(today, str):
         today = pd.Timestamp(today)
-    
-    if "s3" in params:
-        s3 = params["s3"]
-    else:
-        s3 = False
-    
-    if "bucket" in params:
-        bucket = params["bucket"]
-    else:
-        bucket = None
 
     today_string = str(today.strftime("%Y-%m-%d"))
     time_step_string = str(time_step.days) + "d"
@@ -105,7 +75,9 @@ def train_ORM(
 
     for connector, study_list in connector_study_dict.items():
         for study in study_list:
-            KRIs = score_KRIs(connector, study, training_start_w_lag, today, time_step, params)
+            KRIs = score_KRIs(
+                connector, study, training_start_w_lag, today, time_step, params
+            )
             KRI_data = transform_KRI_table(KRIs, params={"lag_periods": lag_periods})
             if isinstance(KRI_data, pd.DataFrame):
                 KRI_data = KRI_data[KRI_data["Start_Time"] >= training_start]
@@ -122,15 +94,16 @@ def train_ORM(
             )
 
     if path_to_saved_KRIs:
-        if s3 == False:
+        if destination_bucket is None:
             all_data.to_csv(
                 os.path.join(path_to_saved_KRIs, run_name + ".csv"), index=False
             )
         else:
-            
-            s3_file_path = os.path.join(path_to_saved_KRIs,  run_name + ".csv")
-            save_df_to_s3(all_data, bucket=bucket, file_path=s3_file_path, index=False)
-            
+
+            s3_file_path = os.path.join(path_to_saved_KRIs, run_name + ".csv")
+            save_df_to_s3(
+                all_data, bucket=destination_bucket, file_path=s3_file_path, index=False
+            )
 
     training_bool = all_data["Start_Time"] < testing_start
     testing_bool = (~training_bool) & (all_data["Start_Time"] < today)
@@ -158,7 +131,16 @@ def train_ORM(
                 raise ValueError
             else:
                 path_to_saved_models = params["path_to_saved_models"]
-                potential_models = os.listdir(path_to_saved_models)
+
+                if source_bucket is None:
+                    potential_models = os.listdir(path_to_saved_models)
+                else:
+                    # use s3 file system to load models
+                    fs = s3fs.S3FileSystem(anon=True)
+                    potential_models = fs.ls(source_bucket + "/" + path_to_saved_models)
+                    potential_models = [m.split("/")[-1] for m in potential_models]
+
+                print("models", potential_models)
                 format_checker = re.compile(r"\d{4}-\d{2}-\d{2}_\d+d_\d+_\d+.pkl")
                 formatted_models = list(
                     filter(lambda x: format_checker.match(x), potential_models)
@@ -168,8 +150,10 @@ def train_ORM(
                     path_to_model = os.path.join(
                         path_to_saved_models, most_recent_model
                     )
-                    if s3 == True:
-                        model.load_model_s3(bucket=bucket, model_name=path_to_model)
+                    if source_bucket is not None:
+                        model.load_model_s3(
+                            bucket=source_bucket, model_name=path_to_model
+                        )
                     else:
                         model.load_model(path_to_model)
                     logging.info(f"Warm starting from {most_recent_model}")
@@ -177,9 +161,9 @@ def train_ORM(
                     logging.info("No models found, performing cold start")
         else:
             try:
-                if s3 == True:
-                    model.load_model_s3(bucket=bucket, model_name=warm_start)
-                
+                if source_bucket is not None:
+                    model.load_model_s3(bucket=source_bucket, model_name=warm_start)
+
                 else:
                     model.load_model(warm_start)
             except FileNotFoundError:
@@ -197,9 +181,12 @@ def train_ORM(
         logging.info(mats["ZKM"])
 
     path_to_saved_models = params["path_to_saved_models"]
-    if s3 == True:
-        model.save_model_s3(bucket=bucket, model_name= os.path.join(path_to_saved_models, run_name))
-    else: 
+    if destination_bucket is not None:
+        model.save_model_s3(
+            bucket=destination_bucket,
+            model_name=os.path.join(path_to_saved_models, run_name),
+        )
+    else:
         model.save_model(path=path_to_saved_models, name=run_name)
         logging.info(f"Saved model as {run_name} in {path_to_saved_models}")
     return perf, mats
@@ -232,7 +219,7 @@ def train_salvo(
         num_testing_steps: (int) the number of hold-out periods for model validation
 
     Returns:
-        a list of aggregate model perfomaces over time, as well as a plot of F1 scores over the training window
+        a list of aggregate model perfomances over time, as well as a plot of F1 scores over the training window
     """
     time_range = Time_Range(start_time, end_time, time_step=time_step, params={})
 

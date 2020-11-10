@@ -238,7 +238,12 @@ def adverse_event_rates(AE_dataset, EX_dataset, start_time, end_time, params={})
 
     AE_counts = adverse_event_count(AE_dataset, start_time, end_time)
     params.update({"adverse_event_type": "s"})
-    SAE_counts = adverse_event_count(AE_dataset, start_time, end_time, params=params,)
+    SAE_counts = adverse_event_count(
+        AE_dataset,
+        start_time,
+        end_time,
+        params=params,
+    )
     params.update({"adverse_event_type": "r"})
     RAE_counts = adverse_event_count(AE_dataset, start_time, end_time, params=params)
 
@@ -450,6 +455,7 @@ def query_response_time(QY_dataset, start_time, end_time, params={}):
     in_type["Response_Time_Hours"] = in_type["Response_Time"].apply(
         lambda x: float(x.seconds / 3600)
     )
+
     if not in_type.empty:
         site_means = in_type.groupby("Site")["Response_Time_Hours"].mean()
 
@@ -481,17 +487,17 @@ def query_response_times(QY_dataset, start_time, end_time, params={}):
         a list of Datasets of query response times
 
     """
-    QY_reponse_time = query_response_time(
+    QY_response_time = query_response_time(
         QY_dataset, start_time, end_time, params=params
     )
     params.update({"query_type": "m"})
-    MQY_reponse_time = query_response_time(
+    MQY_response_time = query_response_time(
         QY_dataset, start_time, end_time, params=params
     )
     params.update({"query_type": "a"})
-    AQY_reponse_time = query_response_time(
+    AQY_response_time = query_response_time(
         QY_dataset, start_time, end_time, params=params
     )
 
-    out = [QY_reponse_time, MQY_reponse_time, AQY_reponse_time]
+    out = [QY_response_time, MQY_response_time, AQY_response_time]
     return out

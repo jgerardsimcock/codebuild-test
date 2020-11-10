@@ -12,6 +12,7 @@ elif len(sys.argv) == 2:
     param_set = sys.argv[1]
 else:
     logging.error("train_ORM only accepts one argument")
+    raise ValueError("train_ORM only accepts one argument")
 
 
 config = configparser.ConfigParser()
