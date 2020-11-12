@@ -51,7 +51,7 @@ def home():
     except BaseException:
         print("Unable to get Hostname and IP")
 
-    return "Hello World I am the RBM Model. Hostname is {} and host_ip is {}".format(
+    return "Hello World I am the RBM Model with a change. Hostname is {} and host_ip is {}".format(
         host_name, host_ip
     )
 
